@@ -26,6 +26,7 @@ function TodoForm({ addTodo }) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         style={{ marginBottom: '20px' , marginTop:'5px', }}
+        sx={{ml:2}}
       />
       <Button variant="contained" color="primary" type="submit"  style={{marginLeft:"20px", marginTop:"15px"}}>
         Add Todo

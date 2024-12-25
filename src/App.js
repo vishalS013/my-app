@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, TextField, List, Dialog, DialogActions, DialogContent, DialogTitle, AppBar, Toolbar, Box } from '@mui/material';
+import { Container, Typography, Button, TextField, List, Dialog, DialogActions, DialogContent, DialogTitle, AppBar, Toolbar, Box, CircularProgress } from '@mui/material';
 import TodoForm from './TodoForm';
 import TodoItem from './TodoItem';
 import './App.css';
@@ -10,8 +10,11 @@ function App() {
   const [sorted, setSorted] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editTodoId, setEditTodoId] = useState(null);
-  const [editTodoTitle, setEditTodoTitle] = useState('');
-  const [viewTodo, setViewTodo] = useState(null);
+  const [editTodoTitle, setEditTodoTitle] = useState('')
+  const [viewTodo, setViewTodo] = useState(null)
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [todoToDelete, setTodoToDelete] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetch('https://jsonplaceholder.typicode.com/todos')
@@ -25,7 +28,8 @@ function App() {
     setTodos([...todos, newTodo]);
   };
 
-  const deleteTodo = (id) => {
+  const deleteTodo = async (id) => {
+    await new Promise(resolve => setTimeout(resolve, 2000)); 
     setTodos(todos.filter(todo => todo.id !== id));
   };
 
@@ -39,7 +43,7 @@ function App() {
   const toggleSort = () => {
     setSorted(!sorted);
     setTodos([...todos].sort((a, b) => sorted ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)));
-  };  
+  };
 
   const toggleComplete = (id) => {
     setTodos(todos.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
@@ -50,6 +54,26 @@ function App() {
   );
 
   const todotoview = todos.find(todo => todo.id === viewTodo);
+
+  const handleDeleteClick = (todo) => {
+    setTodoToDelete(todo);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (todoToDelete) {
+      setLoading(true);  
+      await deleteTodo(todoToDelete.id);
+      setOpenDeleteDialog(false);  
+      setLoading(false); 
+      setTodoToDelete(null); 
+    }
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setTodoToDelete(null);
+  };
 
   return (
     <Container>
@@ -62,50 +86,48 @@ function App() {
       </AppBar>
 
       <Box sx={{ mt: 3 }}>
-        
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', }}>
           <TodoForm addTodo={addTodo} />
           <TextField
             label="Search Todos"
             variant="outlined"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ marginLeft:"340px"}}
-            
+            sx={{ ml: 'auto', mr: 2 }}
           />
-          <Button variant="contained" color="warning" onClick={toggleSort}>
-            {sorted ? 'Sort Descending' : 'Sort Ascending'}
-          </Button>
-          
         </Box>
 
-        <Typography variant="h4" gutterBottom align='center'>
-         Todos
+        <Typography variant="h4" gutterBottom align="center" color='primary'>
+          Todos
         </Typography>
 
-
         <div>
+          <List>
+            <Typography variant="h5" sx={{ marginLeft: "30px", marginTop: '5px' }}>Description 
+              <Button variant="contained" color="warning" onClick={toggleSort} sx={{marginLeft:'5px'}}>
+                {sorted ? 'Descending' : 'Ascending'}
+              </Button>
+            </Typography>
 
-      <List>
-        <Typography variant="h5" sx={{ marginLeft:"30px" ,marginTop:'5px'}}>Description</Typography>
-        <Typography variant="h5" sx={{ textAlign: 'right',marginRight:"5px" }}> Actions</Typography>
-        {filteredTodos.map((todo) => (
-          <TodoItem
-            key={todo.id}
-            todo={todo}
-            deleteTodo={deleteTodo}
-            setOpenEditDialog={setOpenEditDialog}
-            setEditTodoId={setEditTodoId}
-            setEditTodoTitle={setEditTodoTitle}
-            setViewTodo={setViewTodo}
-            toggleComplete={toggleComplete}
-          />
-        ))}
-      </List>
-    </div>
+            <Typography variant="h5" sx={{ textAlign: 'right', marginRight: "5px" }}>Actions</Typography>
+            {filteredTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                deleteTodo={deleteTodo}
+                setOpenEditDialog={setOpenEditDialog}
+                setEditTodoId={setEditTodoId}
+                setEditTodoTitle={setEditTodoTitle}
+                setViewTodo={setViewTodo}
+                toggleComplete={toggleComplete}
+                handleDeleteClick={handleDeleteClick}
+              />
+            ))}
+          </List>
+        </div>
       </Box>
 
-      {/* View Todo Dialog */}
+      {/* View modal */}
       <Dialog open={viewTodo !== null} onClose={() => setViewTodo(null)}>
         <DialogTitle>View Todo</DialogTitle>
         <DialogContent>
@@ -115,7 +137,7 @@ function App() {
                 label="Todo Title"
                 variant="outlined"
                 fullWidth
-                style={{marginTop:'15px'}}
+                style={{ marginTop: '15px' }}
                 value={todotoview.title}
                 disabled
               />
@@ -128,9 +150,7 @@ function App() {
                 sx={{ mt: 2 }}
               />
             </>
-          ) : (
-     null
-          )}
+          ) : null}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewTodo(null)} color="error">
@@ -139,7 +159,7 @@ function App() {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Todo Dialog */}
+      {/* Edit modal */}
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
         <DialogTitle>Edit Todo</DialogTitle>
         <DialogContent>
@@ -148,6 +168,7 @@ function App() {
             variant="outlined"
             fullWidth
             value={editTodoTitle}
+            style={{ marginTop: '15px' }}
             onChange={(e) => setEditTodoTitle(e.target.value)}
           />
         </DialogContent>
@@ -157,6 +178,22 @@ function App() {
           </Button>
           <Button onClick={handleEditTodo} color="success">
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete modal */}
+      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this todo item?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="warning" disabled={loading}>
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
